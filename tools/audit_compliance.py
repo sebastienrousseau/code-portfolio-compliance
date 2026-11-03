@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Sebastien Rousseau <sebastian.rousseau@gmail.com>
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Statically audit repositories against the workspace compliance matrix.
 
 The report is intentionally conservative: it records discoverable repository and
@@ -9,16 +11,31 @@ passed. Generated reports are evidence for remediation and manual verification.
 from __future__ import annotations
 
 import argparse
-import csv
-import json
+import importlib.util
 import os
 import re
 import subprocess
-from collections import Counter, defaultdict
+import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
+
+
+def _load_report_writer():
+    """Import the sibling report module, also under ``python -I`` (no script dir on sys.path)."""
+    try:
+        from compliance_report import write_reports
+    except ModuleNotFoundError:
+        path = Path(__file__).resolve().with_name("compliance_report.py")
+        spec = importlib.util.spec_from_file_location("compliance_report", path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules["compliance_report"] = module
+        spec.loader.exec_module(module)
+        write_reports = module.write_reports
+    return write_reports
+
+
+write_reports = _load_report_writer()
 
 SKIP_DIRS = {
     ".git",
@@ -282,9 +299,7 @@ def checks_for(repo: Path, text: str) -> dict[str, Check]:
     )
     fuzz = ((repo / "fuzz").is_dir() or go_fuzz_targets) and has_any_term(workflow_text, ["fuzz", "corpus"])
     powerset = has_any_term(workflow_text, ["powerset", "all-features", "feature matrix", "hack check"])
-    dependency_scan = (repo / ".github/dependabot.yml").is_file() or has_any_term(
-        workflow_text, ["dependency-review", "renovate", "dependabot"]
-    )
+    dependency_scan = (repo / ".github/dependabot.yml").is_file() or has_any_term(workflow_text, ["dependency-review", "renovate", "dependabot"])
     lockfile = exists_any(repo, ["Cargo.lock", "uv.lock", "poetry.lock", "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "go.sum"])
     advisory = has_any_term(workflow_text, ["cargo audit", "cargo deny", "pip-audit", "npm audit", "govulncheck", "osv-scanner"])
     scorecard = "scorecard" in workflow_text or "scorecard" in text
@@ -342,9 +357,7 @@ def checks_for(repo: Path, text: str) -> dict[str, Check]:
         not ({"internal", "cmd", "testdata", "examples", "scripts", "tools"} & set(path.relative_to(repo).parts)) and not path.name.endswith("_test.go")
         for path in go_packages
     )
-    na_api = "" if (public_go or cargo or pyproject or package_json) else (
-        "no public API: only commands and internal packages" if go_mod else na_code
-    )
+    na_api = "" if (public_go or cargo or pyproject or package_json) else ("no public API: only commands and internal packages" if go_mod else na_code)
     na_powerset = "" if cargo else "feature powersets are a Cargo concept; this ecosystem has no feature flags (AGENTS.md §6)"
 
     def gate(evidence: str, *parts: tuple[bool, str]) -> Check:
@@ -361,7 +374,10 @@ def checks_for(repo: Path, text: str) -> dict[str, Check]:
     req = ""  # a part that is always applicable
 
     return {
-        "C1.L1": Check(bool(readme and license_present and "quick start" in readme.lower() and "development" in readme.lower()), "README + Quick Start + Development + license"),
+        "C1.L1": Check(
+            bool(readme and license_present and "quick start" in readme.lower() and "development" in readme.lower()),
+            "README + Quick Start + Development + license",
+        ),
         "C1.L2": Check(bool(readme_ci and stability and security_section), "README CI + Stability guarantees + Security"),
         "C1.L3": Check(bool(install_ci and toolchain_matrix), "install-snippet CI + toolchain policy matrix"),
         "C2.L1": Check(bool(readme and source_markers), "README + source/documentation surface"),
@@ -384,7 +400,9 @@ def checks_for(repo: Path, text: str) -> dict[str, Check]:
         "C7.L3": Check(bool(scorecard and keys and provenance), "Scorecard + KEYS.asc + provenance"),
         "C8.L1": Check(bool((repo / "CODE_OF_CONDUCT.md").is_file() and (repo / "CONTRIBUTING.md").is_file()), "Code of Conduct + contributing guide"),
         "C8.L2": Check(bool(templates and markdownlint), "issue/PR templates + markdownlint CI"),
-        "C8.L3": Check(bool((repo / "AGENTS.md").is_file() and (repo / "CITATION.cff").is_file() and devcontainer), "AGENTS.md + CITATION.cff + devcontainer CI"),
+        "C8.L3": Check(
+            bool((repo / "AGENTS.md").is_file() and (repo / "CITATION.cff").is_file() and devcontainer), "AGENTS.md + CITATION.cff + devcontainer CI"
+        ),
     }
 
 
@@ -410,18 +428,12 @@ def audit_repository(repo: Path, root: Path, repo_set: set[Path]) -> dict[str, o
     parents = [parent for parent in repo.parents if parent in repo_set]
     embedded = bool(parents)
     path_parts = set(repo.relative_to(root).parts)
-    fork_or_vendor = relative.startswith("Forks/") or bool(
-        path_parts & {"vendor", "vendors", "third_party", "tests", "fixtures"}
-    )
+    fork_or_vendor = relative.startswith("Forks/") or bool(path_parts & {"vendor", "vendors", "third_party", "tests", "fixtures"})
     safe_rewrite = not dirty and not embedded and not fork_or_vendor
     passed = sum(check.ok for check in checks.values())
     applicable = [check for check in checks.values() if not check.not_applicable]
     target_level = int(target[-1])
-    missing = [
-        f"{key} ({check.evidence})"
-        for key, check in checks.items()
-        if int(key[-1]) <= target_level and not check.ok and not check.not_applicable
-    ]
+    missing = [f"{key} ({check.evidence})" for key, check in checks.items() if int(key[-1]) <= target_level and not check.ok and not check.not_applicable]
     not_applicable = {key: check.not_applicable for key, check in checks.items() if check.not_applicable}
     return {
         "path": relative,
@@ -446,127 +458,18 @@ def audit_repository(repo: Path, root: Path, repo_set: set[Path]) -> dict[str, o
     }
 
 
-def write_reports(results: list[dict[str, object]], output: Path, root: Path) -> None:
-    output.mkdir(parents=True, exist_ok=True)
-    generated = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-    payload = {
-        "schema_version": 2,
-        "generated_at": generated,
-        "workspace": str(root),
-        "method": "static conservative signals; CI execution and business criticality require verification",
-        "repositories": results,
-    }
-    (output / "audit.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-
-    fields = [
-        "path",
-        "ecosystem",
-        "target_tier",
-        "criticality",
-        "owner",
-        "candidate_tier",
-        "score_percent",
-        "readme_template",
-        "dirty",
-        "embedded",
-        "fork_or_vendor",
-        "safe_rewrite",
-        "missing_target_signals",
-    ]
-    with (output / "audit.csv").open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields)
-        writer.writeheader()
-        for result in results:
-            row = {key: result[key] for key in fields}
-            row["missing_target_signals"] = "; ".join(result["missing_target_signals"])
-            writer.writerow(row)
-
-    target_counts = Counter(str(result["target_tier"]) for result in results)
-    template_passes = sum(result["readme_template"] == "pass" for result in results)
-    rewrite_queue = [str(result["path"]) for result in results if result["safe_rewrite"] and result["readme_template"] == "fail"]
-    (output / "rewrite-queue.txt").write_text("\n".join(rewrite_queue) + ("\n" if rewrite_queue else ""), encoding="utf-8")
-
-    portfolio: dict[str, Counter[str]] = defaultdict(Counter)
-    for result in results:
-        bucket = str(result["path"]).split("/", 1)[0]
-        portfolio[bucket][str(result["candidate_tier"])] += 1
-
-    try:
-        script_name = Path(__file__).resolve().relative_to(root).as_posix()
-    except ValueError:
-        script_name = str(Path(__file__).resolve())
-
-    lines = [
-        "# Portfolio compliance audit",
-        "",
-        f"> Generated by `{script_name}` at {generated}. Do not edit by hand.",
-        "",
-        "This is a conservative static audit. A candidate tier records discoverable",
-        "signals; it is not proof that CI has passed or that the repository may claim",
-        "the tier. Business criticality remains unclassified until `.compliance.yml`",
-        "declares it.",
-        "",
-        "A check is `n/a` when its subject does not exist in the repository, for",
-        "example completions for a library or a lockfile for a module with no",
-        "dependencies. An `n/a` check satisfies its tier, is listed with its reason",
-        "under `not_applicable` in `audit.json`, and is left out of the score.",
-        "",
-        "## Summary",
-        "",
-        f"- Repositories: **{len(results)}**",
-        f"- Canonical primary READMEs: **{template_passes}/{len(results)}**",
-        f"- Safe README rewrite queue: **{len(rewrite_queue)}**",
-        f"- Dirty repositories: **{sum(bool(result['dirty']) for result in results)}**",
-        f"- Embedded/fork/vendor repositories excluded from automatic rewrites: **{sum(bool(result['embedded'] or result['fork_or_vendor']) for result in results)}**",
-        "",
-        "### Target tiers",
-        "",
-        "| L1 | L2 | L3 |",
-        "| ---: | ---: | ---: |",
-        f"| {target_counts['L1']} | {target_counts['L2']} | {target_counts['L3']} |",
-        "",
-        "### Candidate-tier heat map",
-        "",
-        "| Portfolio | L0 | L1 | L2 | L3 |",
-        "| :--- | ---: | ---: | ---: | ---: |",
-    ]
-    for bucket in sorted(portfolio):
-        counts = portfolio[bucket]
-        lines.append(f"| {bucket} | {counts['L0']} | {counts['L1']} | {counts['L2']} | {counts['L3']} |")
-    lines += [
-        "",
-        "## Repository results",
-        "",
-        "| Repository | Ecosystem | Target | Candidate | Score | README | Rewrite |",
-        "| :--- | :--- | :---: | :---: | ---: | :---: | :---: |",
-    ]
-    for result in results:
-        rewrite = "yes" if result["safe_rewrite"] and result["readme_template"] == "fail" else "no"
-        lines.append(
-            f"| `{result['path']}` | {result['ecosystem']} | {result['target_tier']} | "
-            f"{result['candidate_tier']} | {result['score_percent']}% | {result['readme_template']} | {rewrite} |"
-        )
-    lines += [
-        "",
-        "## Artifacts",
-        "",
-        "- `audit.json`: complete machine-readable checks and evidence gaps.",
-        "- `audit.csv`: portfolio triage table.",
-        "- `rewrite-queue.txt`: clean, non-fork, non-embedded repositories whose primary README fails the template.",
-        "",
-    ]
-    (output / "README.md").write_text("\n".join(lines), encoding="utf-8")
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     script_path = Path(__file__).resolve()
-    parser.add_argument("--root", type=Path, default=find_workspace_root(script_path.parent))
+    parser.add_argument("--root", type=Path, default=None, help="workspace root (default: the nearest parent holding Forks, Private, Public and Work)")
     parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--roots", nargs="*", default=["Public", "Private", "Work", "Forks"])
     args = parser.parse_args()
 
-    root = args.root.resolve()
+    try:
+        root = (args.root or find_workspace_root(script_path.parent)).resolve()
+    except RuntimeError as exc:
+        parser.error(f"{exc}; pass --root")
     output = (args.output or script_path.parents[1] / "reports").resolve()
     repositories = discover_repositories(root / name for name in args.roots)
     repo_set = set(repositories)

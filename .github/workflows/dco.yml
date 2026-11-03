@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: 2026 Sebastien Rousseau <sebastian.rousseau@gmail.com>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: DCO
+
+# Every commit in a pull request must carry a "Signed-off-by: Name <email>"
+# trailer (git commit -s). Merge commits are exempt: they introduce no
+# authored content, so there is nothing for their author to certify.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions: {}
+
+jobs:
+  dco:
+    name: DCO check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout history without blobs
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          filter: blob:none
+          sparse-checkout: .github
+          persist-credentials: false
+          show-progress: false
+
+      - name: Verify Signed-off-by on every PR commit
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for sha in $(git rev-list --no-merges "${BASE_SHA}..${HEAD_SHA}"); do
+            if ! git show -s --format=%B "${sha}" | grep -qi '^Signed-off-by: .* <.*>$'; then
+              echo "::error::${sha} $(git log -1 --format=%s "${sha}") has no Signed-off-by trailer"
+              missing=1
+            fi
+          done
+          [ "${missing}" -eq 0 ] || { echo "Fix with: git commit --amend --signoff (see CONTRIBUTING.md)"; exit 1; }
+          echo "All PR commits carry a Signed-off-by trailer."

@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Sebastien Rousseau <sebastian.rousseau@gmail.com>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# The compliance tier this repository targets (~/Code/AGENTS.md §5.1).
+# A private, single-owner internal tool: the Foundation tier.
+# L3 and criticality "core" are only ever declared explicitly by the owner.
+tier: L1
+criticality: incubator
+owner: sebastienrousseau
