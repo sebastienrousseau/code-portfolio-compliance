@@ -160,34 +160,48 @@ def strip_code(text: str) -> str:
     return INLINE_CODE.sub("", FENCED_CODE.sub("", text))
 
 
-def readme_template_status(repo: Path) -> tuple[bool, list[str]]:
-    text = read_text(repo / "README.md")
+README_STRUCTURE = [
+    "<!-- SPDX-License-Identifier:",
+    '<p align="center">',
+    '<h1 align="center">',
+    "ossf-scorecard",
+]
+PROJECT_H1 = re.compile(r'<h1 align="center">([^<]+)</h1>')
+
+
+def readme_blocking_issue(text: str) -> str:
+    """The first problem that stops the template check, or "" when there is none."""
     if not text:
-        return False, ["README.md missing or unreadable"]
+        return "README.md missing or unreadable"
     if UNRESOLVED_TOKEN.search(strip_code(text)):
-        return False, ["unresolved template variables"]
-    project_match = re.search(r'<h1 align="center">([^<]+)</h1>', text)
-    if not project_match:
-        return False, ["centered project h1 missing"]
-    project = project_match.group(1).strip()
+        return "unresolved template variables"
+    if not PROJECT_H1.search(text):
+        return "centered project h1 missing"
+    return ""
+
+
+def heading_issues(text: str) -> list[str]:
+    """Differences between the README's level-2 headings and the template's."""
+    project = PROJECT_H1.search(text).group(1).strip()
     actual = re.findall(r"(?m)^## ([^\n]+)$", text)
     required = [heading.format(project=project) for heading in README_HEADINGS]
-    if actual != required:
-        missing = [heading for heading in required if heading not in actual]
-        extra = [heading for heading in actual if heading not in required]
-        issues = [f"missing heading: {heading}" for heading in missing]
-        issues += [f"unexpected heading: {heading}" for heading in extra]
-        if not issues:
-            issues.append("required headings are out of order")
+    if actual == required:
+        return []
+    issues = [f"missing heading: {heading}" for heading in required if heading not in actual]
+    issues += [f"unexpected heading: {heading}" for heading in actual if heading not in required]
+    return issues or ["required headings are out of order"]
+
+
+def readme_template_status(repo: Path) -> tuple[bool, list[str]]:
+    text = read_text(repo / "README.md")
+    blocking = readme_blocking_issue(text)
+    if blocking:
+        return False, [blocking]
+    issues = heading_issues(text)
+    if issues:
         return False, issues
-    prefix_signals = [
-        "<!-- SPDX-License-Identifier:",
-        '<p align="center">',
-        '<h1 align="center">',
-        "ossf-scorecard",
-    ]
-    missing_prefix = [signal for signal in prefix_signals if signal not in text]
-    return (not missing_prefix, [f"missing structure: {item}" for item in missing_prefix])
+    missing_structure = [signal for signal in README_STRUCTURE if signal not in text]
+    return (not missing_structure, [f"missing structure: {item}" for item in missing_structure])
 
 
 def candidate_tier(checks: dict[str, Check]) -> str:
