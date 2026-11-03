@@ -244,7 +244,7 @@ def checks_for(repo: Path, text: str) -> dict[str, Check]:
     )
     source_markers = exists_any(
         repo,
-        ["src", "lib", "cmd", "app", "Cargo.toml", "pyproject.toml", "package.json", "go.mod", "action.yml", "action.yaml"],
+        ["src", "lib", "cmd", "app", "scripts", "Cargo.toml", "pyproject.toml", "package.json", "go.mod", "action.yml", "action.yaml"],
     )
     native_build = exists_any(
         repo,
