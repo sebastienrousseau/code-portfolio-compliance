@@ -459,12 +459,12 @@ def audit_repository(repo: Path, root: Path, repo_set: set[Path]) -> dict[str, o
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     script_path = Path(__file__).resolve()
-    parser.add_argument("--root", type=Path, default=find_workspace_root(script_path.parent))
+    parser.add_argument("--root", type=Path, default=None, help="workspace root (default: the nearest parent holding Forks, Private, Public and Work)")
     parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--roots", nargs="*", default=["Public", "Private", "Work", "Forks"])
     args = parser.parse_args()
 
-    root = args.root.resolve()
+    root = (args.root or find_workspace_root(script_path.parent)).resolve()
     output = (args.output or script_path.parents[1] / "reports").resolve()
     repositories = discover_repositories(root / name for name in args.roots)
     repo_set = set(repositories)
