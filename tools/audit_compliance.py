@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Sebastien Rousseau <sebastian.rousseau@gmail.com>
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Statically audit repositories against the workspace compliance matrix.
 
 The report is intentionally conservative: it records discoverable repository and
@@ -464,7 +466,10 @@ def main() -> int:
     parser.add_argument("--roots", nargs="*", default=["Public", "Private", "Work", "Forks"])
     args = parser.parse_args()
 
-    root = (args.root or find_workspace_root(script_path.parent)).resolve()
+    try:
+        root = (args.root or find_workspace_root(script_path.parent)).resolve()
+    except RuntimeError as exc:
+        parser.error(f"{exc}; pass --root")
     output = (args.output or script_path.parents[1] / "reports").resolve()
     repositories = discover_repositories(root / name for name in args.roots)
     repo_set = set(repositories)
