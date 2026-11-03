@@ -13,7 +13,7 @@
 
 <p align="center">
   <a href="https://github.com/sebastienrousseau/code-portfolio-compliance/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/sebastienrousseau/code-portfolio-compliance/ci.yml?branch=main&style=for-the-badge&logo=github&label=Build" alt="Build" height="28" /></a>
-  <a href="https://github.com/sebastienrousseau/code-portfolio-compliance/releases"><img src="https://img.shields.io/badge/release-v0.0.1-fc8d62?style=for-the-badge&color=fc8d62&logo=github" alt="Registry" height="28" /></a>
+  <a href="https://github.com/sebastienrousseau/code-portfolio-compliance/releases"><img src="https://img.shields.io/badge/release-v0.0.2-fc8d62?style=for-the-badge&color=fc8d62&logo=github" alt="Registry" height="28" /></a>
   <a href="#documentation"><img src="https://img.shields.io/badge/docs-README-555555?style=for-the-badge&labelColor=555555&logo=markdown" alt="Docs" height="28" /></a>
   <a href="https://scorecard.dev/viewer/?uri=github.com/sebastienrousseau/code-portfolio-compliance"><img src="https://img.shields.io/ossf-scorecard/github.com/sebastienrousseau/code-portfolio-compliance?style=for-the-badge&label=OpenSSF%20Scorecard&logo=openssf" alt="OpenSSF Scorecard" height="28" /></a>
   <a href="LICENSE-MIT"><img src="https://img.shields.io/badge/license-MIT_OR_Apache--2.0-blue.svg?style=for-the-badge" alt="License: MIT OR Apache-2.0" height="28" /></a>
@@ -115,7 +115,8 @@ Everything lives in this repository.
 
 | Component | Purpose | Use case |
 | :--- | :--- | :--- |
-| [`tools/audit_compliance.py`](tools/audit_compliance.py) | Discovers repositories and evaluates the 24 signals for each | Portfolio audit (`~/Code/AGENTS.md` §8) |
+| [`tools/audit_compliance.py`](tools/audit_compliance.py) | Discovers repositories, reads declarations and the README template, runs the command line | Portfolio audit (`~/Code/AGENTS.md` §8) |
+| [`tools/compliance_checks.py`](tools/compliance_checks.py) | Evaluates the 24 signals: evidence, not-applicable reasons, one function per category | Called by the audit |
 | [`tools/compliance_report.py`](tools/compliance_report.py) | Writes the JSON, CSV, rewrite queue and Markdown reports | Called by the audit |
 | [`scripts/complexity_gate.py`](scripts/complexity_gate.py) | Enforces the per-function complexity ceilings against `complexity-baseline.json` | `make complexity`, CI |
 | [`scripts/readme_check.py`](scripts/readme_check.py) | Runs the audit's own README template check on this README | `make readme-check`, CI |
@@ -251,7 +252,7 @@ make audit   # audit the workspace into reports/
 markdownlint, this README against the template, the complexity ratchet,
 pip-audit of the locked dev tools, pytest, and `uv build`. Functions must
 stay within cyclomatic 10, cognitive 15, Halstead difficulty 30 and 60
-lines, and files within 500 lines; the three functions already over a
+lines, and files within 500 lines; the two functions already over a
 ceiling are listed in `complexity-baseline.json`, which may only shrink
 (`make baseline` after one improves).
 
