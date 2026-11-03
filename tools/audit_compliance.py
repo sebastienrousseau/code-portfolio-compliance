@@ -282,9 +282,7 @@ def checks_for(repo: Path, text: str) -> dict[str, Check]:
     )
     fuzz = ((repo / "fuzz").is_dir() or go_fuzz_targets) and has_any_term(workflow_text, ["fuzz", "corpus"])
     powerset = has_any_term(workflow_text, ["powerset", "all-features", "feature matrix", "hack check"])
-    dependency_scan = (repo / ".github/dependabot.yml").is_file() or has_any_term(
-        workflow_text, ["dependency-review", "renovate", "dependabot"]
-    )
+    dependency_scan = (repo / ".github/dependabot.yml").is_file() or has_any_term(workflow_text, ["dependency-review", "renovate", "dependabot"])
     lockfile = exists_any(repo, ["Cargo.lock", "uv.lock", "poetry.lock", "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "go.sum"])
     advisory = has_any_term(workflow_text, ["cargo audit", "cargo deny", "pip-audit", "npm audit", "govulncheck", "osv-scanner"])
     scorecard = "scorecard" in workflow_text or "scorecard" in text
@@ -342,9 +340,7 @@ def checks_for(repo: Path, text: str) -> dict[str, Check]:
         not ({"internal", "cmd", "testdata", "examples", "scripts", "tools"} & set(path.relative_to(repo).parts)) and not path.name.endswith("_test.go")
         for path in go_packages
     )
-    na_api = "" if (public_go or cargo or pyproject or package_json) else (
-        "no public API: only commands and internal packages" if go_mod else na_code
-    )
+    na_api = "" if (public_go or cargo or pyproject or package_json) else ("no public API: only commands and internal packages" if go_mod else na_code)
     na_powerset = "" if cargo else "feature powersets are a Cargo concept; this ecosystem has no feature flags (AGENTS.md §6)"
 
     def gate(evidence: str, *parts: tuple[bool, str]) -> Check:
@@ -361,7 +357,10 @@ def checks_for(repo: Path, text: str) -> dict[str, Check]:
     req = ""  # a part that is always applicable
 
     return {
-        "C1.L1": Check(bool(readme and license_present and "quick start" in readme.lower() and "development" in readme.lower()), "README + Quick Start + Development + license"),
+        "C1.L1": Check(
+            bool(readme and license_present and "quick start" in readme.lower() and "development" in readme.lower()),
+            "README + Quick Start + Development + license",
+        ),
         "C1.L2": Check(bool(readme_ci and stability and security_section), "README CI + Stability guarantees + Security"),
         "C1.L3": Check(bool(install_ci and toolchain_matrix), "install-snippet CI + toolchain policy matrix"),
         "C2.L1": Check(bool(readme and source_markers), "README + source/documentation surface"),
@@ -384,7 +383,9 @@ def checks_for(repo: Path, text: str) -> dict[str, Check]:
         "C7.L3": Check(bool(scorecard and keys and provenance), "Scorecard + KEYS.asc + provenance"),
         "C8.L1": Check(bool((repo / "CODE_OF_CONDUCT.md").is_file() and (repo / "CONTRIBUTING.md").is_file()), "Code of Conduct + contributing guide"),
         "C8.L2": Check(bool(templates and markdownlint), "issue/PR templates + markdownlint CI"),
-        "C8.L3": Check(bool((repo / "AGENTS.md").is_file() and (repo / "CITATION.cff").is_file() and devcontainer), "AGENTS.md + CITATION.cff + devcontainer CI"),
+        "C8.L3": Check(
+            bool((repo / "AGENTS.md").is_file() and (repo / "CITATION.cff").is_file() and devcontainer), "AGENTS.md + CITATION.cff + devcontainer CI"
+        ),
     }
 
 
@@ -410,18 +411,12 @@ def audit_repository(repo: Path, root: Path, repo_set: set[Path]) -> dict[str, o
     parents = [parent for parent in repo.parents if parent in repo_set]
     embedded = bool(parents)
     path_parts = set(repo.relative_to(root).parts)
-    fork_or_vendor = relative.startswith("Forks/") or bool(
-        path_parts & {"vendor", "vendors", "third_party", "tests", "fixtures"}
-    )
+    fork_or_vendor = relative.startswith("Forks/") or bool(path_parts & {"vendor", "vendors", "third_party", "tests", "fixtures"})
     safe_rewrite = not dirty and not embedded and not fork_or_vendor
     passed = sum(check.ok for check in checks.values())
     applicable = [check for check in checks.values() if not check.not_applicable]
     target_level = int(target[-1])
-    missing = [
-        f"{key} ({check.evidence})"
-        for key, check in checks.items()
-        if int(key[-1]) <= target_level and not check.ok and not check.not_applicable
-    ]
+    missing = [f"{key} ({check.evidence})" for key, check in checks.items() if int(key[-1]) <= target_level and not check.ok and not check.not_applicable]
     not_applicable = {key: check.not_applicable for key, check in checks.items() if check.not_applicable}
     return {
         "path": relative,

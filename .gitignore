@@ -5,3 +5,8 @@ __pycache__/
 # Generated output and local PR drafts stay out of git
 reports/
 pr/
+.venv/
+.ruff_cache/
+.pytest_cache/
+.complexipy_cache/
+dist/
