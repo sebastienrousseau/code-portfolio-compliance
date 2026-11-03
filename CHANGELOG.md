@@ -9,6 +9,17 @@ by 0.0.1 a release (see [docs/POLICIES.md](docs/POLICIES.md)).
 
 ## [Unreleased]
 
+## [0.0.2] - 2026-11-03
+
+### Changed
+
+- The 24 checks moved from `checks_for` in `tools/audit_compliance.py` to
+  `tools/compliance_checks.py`, split into evidence gathering, the
+  not-applicable reasons and one function per category. Every check gives
+  the same result as in 0.0.1 for all 436 repositories in the workspace.
+- `checks_for` left `complexity-baseline.json`; two offenders remain
+  (`audit_repository`, `readme_template_status`).
+
 ## [0.0.1] - 2026-11-03
 
 First versioned release of the audit tool, previously an unversioned script.
@@ -42,5 +53,6 @@ First versioned release of the audit tool, previously an unversioned script.
   with `--root` given. The default root is now resolved only when needed,
   and a missing workspace is a usage error that names `--root`.
 
-[Unreleased]: https://github.com/sebastienrousseau/code-portfolio-compliance/compare/v0.0.1...HEAD
+[Unreleased]: https://github.com/sebastienrousseau/code-portfolio-compliance/compare/v0.0.2...HEAD
+[0.0.2]: https://github.com/sebastienrousseau/code-portfolio-compliance/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/sebastienrousseau/code-portfolio-compliance/releases/tag/v0.0.1

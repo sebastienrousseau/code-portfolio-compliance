@@ -3,7 +3,7 @@
 
 [project]
 name = "code-portfolio-compliance"
-version = "0.0.1"
+version = "0.0.2"
 description = "Static audit of workspace repositories against the portfolio compliance matrix"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
@@ -23,7 +23,7 @@ requires = ["hatchling==1.33.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-only-include = ["tools/audit_compliance.py", "tools/compliance_report.py"]
+only-include = ["tools/audit_compliance.py", "tools/compliance_checks.py", "tools/compliance_report.py"]
 sources = ["tools"]
 
 [tool.ruff]

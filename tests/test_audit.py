@@ -57,8 +57,8 @@ def test_candidate_tier_is_l0_when_l1_fails():
 def test_script_runs_directly_and_isolated(tmp_path, flags):
     # A copy run by the base interpreter: the project is not installed there,
     # so under -I the sibling module is found only by the path fallback.
-    for name in ("audit_compliance.py", "compliance_report.py"):
-        shutil.copy(TOOL.with_name(name), tmp_path / name)
+    for module in TOOL.parent.glob("*.py"):
+        shutil.copy(module, tmp_path / module.name)
     python = getattr(sys, "_base_executable", sys.executable)
     run = subprocess.run([python, *flags, str(tmp_path / "audit_compliance.py"), "--help"], capture_output=True, text=True, check=False)
     assert run.returncode == 0, run.stderr
@@ -66,8 +66,8 @@ def test_script_runs_directly_and_isolated(tmp_path, flags):
 
 
 def test_missing_workspace_is_a_usage_error_not_a_traceback(tmp_path):
-    shutil.copy(TOOL, tmp_path / "audit_compliance.py")
-    shutil.copy(TOOL.with_name("compliance_report.py"), tmp_path / "compliance_report.py")
+    for module in TOOL.parent.glob("*.py"):
+        shutil.copy(module, tmp_path / module.name)
     run = subprocess.run([sys.executable, str(tmp_path / "audit_compliance.py")], capture_output=True, text=True, check=False, cwd=tmp_path)
     assert run.returncode == 2
     assert "Traceback" not in run.stderr
