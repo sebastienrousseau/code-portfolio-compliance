@@ -9,6 +9,21 @@ by 0.0.1 a release (see [docs/POLICIES.md](docs/POLICIES.md)).
 
 ## [Unreleased]
 
+## [0.0.3] - 2026-11-03
+
+### Changed
+
+- `readme_template_status` and `audit_repository` are split into small
+  functions (`readme_blocking_issue`, `heading_issues`, `score`,
+  `missing_signals`, `rewrite_safety`). Results are identical for all 436
+  repositories in the workspace.
+- `complexity-baseline.json` is empty: every function is within the
+  AGENTS.md ceilings.
+
+### Added
+
+- Tests for the README template check and for scoring and rewrite safety.
+
 ## [0.0.2] - 2026-11-03
 
 ### Changed
@@ -53,6 +68,7 @@ First versioned release of the audit tool, previously an unversioned script.
   with `--root` given. The default root is now resolved only when needed,
   and a missing workspace is a usage error that names `--root`.
 
-[Unreleased]: https://github.com/sebastienrousseau/code-portfolio-compliance/compare/v0.0.2...HEAD
+[Unreleased]: https://github.com/sebastienrousseau/code-portfolio-compliance/compare/v0.0.3...HEAD
+[0.0.3]: https://github.com/sebastienrousseau/code-portfolio-compliance/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/sebastienrousseau/code-portfolio-compliance/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/sebastienrousseau/code-portfolio-compliance/releases/tag/v0.0.1

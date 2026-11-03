@@ -28,9 +28,9 @@ and where they are stricter they win.
    audit`), `.github/demo.gif` (`make demo`).
 6. **The report schema is an interface.** Changing `audit.json` fields
    raises `schema_version` and is a breaking CHANGELOG entry.
-7. **Complexity only shrinks.** New code meets every ceiling; a function in
-   `complexity-baseline.json` that you touch is brought under the ceiling in
-   the same change, then `make baseline`.
+7. **Complexity stays within the ceilings.** `complexity-baseline.json` is
+   empty and must stay so: new and changed code meets every ceiling, and
+   `make complexity` fails otherwise.
 8. **Commits** are signed, signed off (`git commit -s`), conventional, and
    carry an `Assisted-by:` trailer when an agent helped.
 
