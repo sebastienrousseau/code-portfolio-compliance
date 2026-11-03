@@ -13,7 +13,7 @@
 
 <p align="center">
   <a href="https://github.com/sebastienrousseau/code-portfolio-compliance/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/sebastienrousseau/code-portfolio-compliance/ci.yml?branch=main&style=for-the-badge&logo=github&label=Build" alt="Build" height="28" /></a>
-  <a href="https://github.com/sebastienrousseau/code-portfolio-compliance/releases"><img src="https://img.shields.io/badge/release-v0.0.2-fc8d62?style=for-the-badge&color=fc8d62&logo=github" alt="Registry" height="28" /></a>
+  <a href="https://github.com/sebastienrousseau/code-portfolio-compliance/releases"><img src="https://img.shields.io/badge/release-v0.0.3-fc8d62?style=for-the-badge&color=fc8d62&logo=github" alt="Registry" height="28" /></a>
   <a href="#documentation"><img src="https://img.shields.io/badge/docs-README-555555?style=for-the-badge&labelColor=555555&logo=markdown" alt="Docs" height="28" /></a>
   <a href="https://scorecard.dev/viewer/?uri=github.com/sebastienrousseau/code-portfolio-compliance"><img src="https://img.shields.io/ossf-scorecard/github.com/sebastienrousseau/code-portfolio-compliance?style=for-the-badge&label=OpenSSF%20Scorecard&logo=openssf" alt="OpenSSF Scorecard" height="28" /></a>
   <a href="LICENSE-MIT"><img src="https://img.shields.io/badge/license-MIT_OR_Apache--2.0-blue.svg?style=for-the-badge" alt="License: MIT OR Apache-2.0" height="28" /></a>
@@ -252,9 +252,9 @@ make audit   # audit the workspace into reports/
 markdownlint, this README against the template, the complexity ratchet,
 pip-audit of the locked dev tools, pytest, and `uv build`. Functions must
 stay within cyclomatic 10, cognitive 15, Halstead difficulty 30 and 60
-lines, and files within 500 lines; the two functions already over a
-ceiling are listed in `complexity-baseline.json`, which may only shrink
-(`make baseline` after one improves).
+lines, and files within 500 lines. Every function is within every ceiling,
+so `complexity-baseline.json` is empty; the gate fails on any new
+offender.
 
 ---
 

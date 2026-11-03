@@ -1,10 +1,1 @@
-{
-  "tools/audit_compliance.py::audit_repository": {
-    "cognitive": 17,
-    "cyclomatic": 19
-  },
-  "tools/audit_compliance.py::readme_template_status": {
-    "cognitive": 20,
-    "cyclomatic": 16
-  }
-}
+{}

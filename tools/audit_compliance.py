@@ -160,34 +160,48 @@ def strip_code(text: str) -> str:
     return INLINE_CODE.sub("", FENCED_CODE.sub("", text))
 
 
-def readme_template_status(repo: Path) -> tuple[bool, list[str]]:
-    text = read_text(repo / "README.md")
+README_STRUCTURE = [
+    "<!-- SPDX-License-Identifier:",
+    '<p align="center">',
+    '<h1 align="center">',
+    "ossf-scorecard",
+]
+PROJECT_H1 = re.compile(r'<h1 align="center">([^<]+)</h1>')
+
+
+def readme_blocking_issue(text: str) -> str:
+    """The first problem that stops the template check, or "" when there is none."""
     if not text:
-        return False, ["README.md missing or unreadable"]
+        return "README.md missing or unreadable"
     if UNRESOLVED_TOKEN.search(strip_code(text)):
-        return False, ["unresolved template variables"]
-    project_match = re.search(r'<h1 align="center">([^<]+)</h1>', text)
-    if not project_match:
-        return False, ["centered project h1 missing"]
-    project = project_match.group(1).strip()
+        return "unresolved template variables"
+    if not PROJECT_H1.search(text):
+        return "centered project h1 missing"
+    return ""
+
+
+def heading_issues(text: str) -> list[str]:
+    """Differences between the README's level-2 headings and the template's."""
+    project = PROJECT_H1.search(text).group(1).strip()
     actual = re.findall(r"(?m)^## ([^\n]+)$", text)
     required = [heading.format(project=project) for heading in README_HEADINGS]
-    if actual != required:
-        missing = [heading for heading in required if heading not in actual]
-        extra = [heading for heading in actual if heading not in required]
-        issues = [f"missing heading: {heading}" for heading in missing]
-        issues += [f"unexpected heading: {heading}" for heading in extra]
-        if not issues:
-            issues.append("required headings are out of order")
+    if actual == required:
+        return []
+    issues = [f"missing heading: {heading}" for heading in required if heading not in actual]
+    issues += [f"unexpected heading: {heading}" for heading in actual if heading not in required]
+    return issues or ["required headings are out of order"]
+
+
+def readme_template_status(repo: Path) -> tuple[bool, list[str]]:
+    text = read_text(repo / "README.md")
+    blocking = readme_blocking_issue(text)
+    if blocking:
+        return False, [blocking]
+    issues = heading_issues(text)
+    if issues:
         return False, issues
-    prefix_signals = [
-        "<!-- SPDX-License-Identifier:",
-        '<p align="center">',
-        '<h1 align="center">',
-        "ossf-scorecard",
-    ]
-    missing_prefix = [signal for signal in prefix_signals if signal not in text]
-    return (not missing_prefix, [f"missing structure: {item}" for item in missing_prefix])
+    missing_structure = [signal for signal in README_STRUCTURE if signal not in text]
+    return (not missing_structure, [f"missing structure: {item}" for item in missing_structure])
 
 
 def candidate_tier(checks: dict[str, Check]) -> str:
@@ -201,24 +215,42 @@ def candidate_tier(checks: dict[str, Check]) -> str:
     return achieved
 
 
+VENDORED_PARTS = {"vendor", "vendors", "third_party", "tests", "fixtures"}
+
+
+def rewrite_safety(repo: Path, root: Path, repo_set: set[Path]) -> dict[str, bool]:
+    """Whether the README may be rewritten automatically: clean, not embedded, not a fork or vendored."""
+    relative = repo.relative_to(root)
+    dirty = bool(git_output(repo, "status", "--porcelain", "--untracked-files=normal", timeout=10))
+    embedded = any(parent in repo_set for parent in repo.parents)
+    fork_or_vendor = relative.as_posix().startswith("Forks/") or bool(set(relative.parts) & VENDORED_PARTS)
+    return {"dirty": dirty, "embedded": embedded, "fork_or_vendor": fork_or_vendor, "safe_rewrite": not (dirty or embedded or fork_or_vendor)}
+
+
+def score(checks: dict[str, Check]) -> dict[str, int]:
+    """Passed and applicable signal counts; n/a checks are left out of the score."""
+    passed = sum(check.ok for check in checks.values())
+    applicable = sum(not check.not_applicable for check in checks.values())
+    return {
+        "signals_passed": passed,
+        "signals_total": applicable,
+        "signals_not_applicable": len(checks) - applicable,
+        "score_percent": round(100 * passed / applicable) if applicable else 100,
+    }
+
+
+def missing_signals(checks: dict[str, Check], target: str) -> list[str]:
+    """The failing, applicable checks at or below the target tier."""
+    level = int(target[-1])
+    return [f"{key} ({check.evidence})" for key, check in checks.items() if int(key[-1]) <= level and not check.ok and not check.not_applicable]
+
+
 def audit_repository(repo: Path, root: Path, repo_set: set[Path]) -> dict[str, object]:
     relative = repo.relative_to(root).as_posix()
-    text = corpus(repo)
-    checks = checks_for(repo, text)
+    checks = checks_for(repo, corpus(repo))
     target, criticality, owner = parse_declaration(repo, relative)
     template_ok, template_issues = readme_template_status(repo)
-    status = git_output(repo, "status", "--porcelain", "--untracked-files=normal", timeout=10)
-    dirty = bool(status)
-    parents = [parent for parent in repo.parents if parent in repo_set]
-    embedded = bool(parents)
-    path_parts = set(repo.relative_to(root).parts)
-    fork_or_vendor = relative.startswith("Forks/") or bool(path_parts & {"vendor", "vendors", "third_party", "tests", "fixtures"})
-    safe_rewrite = not dirty and not embedded and not fork_or_vendor
-    passed = sum(check.ok for check in checks.values())
-    applicable = [check for check in checks.values() if not check.not_applicable]
-    target_level = int(target[-1])
-    missing = [f"{key} ({check.evidence})" for key, check in checks.items() if int(key[-1]) <= target_level and not check.ok and not check.not_applicable]
-    not_applicable = {key: check.not_applicable for key, check in checks.items() if check.not_applicable}
+    safety = rewrite_safety(repo, root, repo_set)
     return {
         "path": relative,
         "ecosystem": infer_ecosystem(repo),
@@ -226,19 +258,13 @@ def audit_repository(repo: Path, root: Path, repo_set: set[Path]) -> dict[str, o
         "criticality": criticality,
         "owner": owner,
         "candidate_tier": candidate_tier(checks),
-        "signals_passed": passed,
-        "signals_total": len(applicable),
-        "signals_not_applicable": len(not_applicable),
-        "score_percent": round(100 * passed / len(applicable)) if applicable else 100,
+        **score(checks),
         "readme_template": "pass" if template_ok else "fail",
         "readme_issues": template_issues,
-        "dirty": dirty,
-        "embedded": embedded,
-        "fork_or_vendor": fork_or_vendor,
-        "safe_rewrite": safe_rewrite,
-        "missing_target_signals": missing,
+        **safety,
+        "missing_target_signals": missing_signals(checks, target),
         "checks": {key: ("n/a" if check.not_applicable else check.ok) for key, check in checks.items()},
-        "not_applicable": not_applicable,
+        "not_applicable": {key: check.not_applicable for key, check in checks.items() if check.not_applicable},
     }
 
 
