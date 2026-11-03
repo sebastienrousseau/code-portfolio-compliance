@@ -5,6 +5,7 @@
 name = "code-portfolio-compliance"
 version = "0.0.1"
 description = "Static audit of workspace repositories against the portfolio compliance matrix"
+readme = "README.md"
 license = "MIT OR Apache-2.0"
 license-files = ["LICENSE-MIT", "LICENSE-APACHE"]
 authors = [{ name = "Sebastien Rousseau", email = "sebastian.rousseau@gmail.com" }]

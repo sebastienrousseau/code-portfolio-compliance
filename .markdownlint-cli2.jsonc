@@ -1,0 +1,27 @@
+// SPDX-FileCopyrightText: 2026 Sebastien Rousseau <sebastian.rousseau@gmail.com>
+// SPDX-License-Identifier: MIT OR Apache-2.0
+//
+// The rules kept catch defects a reader would hit: a broken heading
+// hierarchy, a duplicate heading, a fenced block with no language, a bare
+// URL, a missing final newline. The rules disabled are typographic
+// preferences, as in the rest of the portfolio.
+{
+  "globs": ["**/*.md"],
+  // reports/ and pr/ are local, gitignored output.
+  "ignores": [".github/ISSUE_TEMPLATE/**", "node_modules/**", ".venv/**", "reports/**", "pr/**", "dist/**"],
+  "config": {
+    "default": true,
+    // Prose is hard-wrapped at varying widths; tables exceed any limit.
+    "MD013": false,
+    // Table pipe alignment is cosmetic.
+    "MD060": false,
+    // The CHANGELOG repeats "### Added" under each release.
+    "MD024": { "siblings_only": true },
+    // The README's centred logo, badge row and demo need inline HTML.
+    "MD033": false,
+    // Line 1 of every file is an SPDX comment, not the heading.
+    "MD041": false,
+    // The README template's Contents groups are bold labels by design.
+    "MD036": false
+  }
+}
