@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: 2026 Sebastien Rousseau <sebastian.rousseau@gmail.com>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+name: Wrong signal
+description: A check passes or fails a repository when the matrix says otherwise
+labels: [bug]
+body:
+  - type: input
+    id: signal
+    attributes:
+      label: Signal
+      placeholder: C2.L1
+    validations:
+      required: true
+  - type: textarea
+    id: repository
+    attributes:
+      label: Repository and evidence
+      description: Which repository, what the tool reported, and the file or line of the matrix that says it should be different.
+    validations:
+      required: true
+  - type: textarea
+    id: version
+    attributes:
+      label: Version
+      description: Output of `git -C ~/Code/Private/Other/code-portfolio-compliance describe --always; python3 --version`
+      render: text
+    validations:
+      required: true
