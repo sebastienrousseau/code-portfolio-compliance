@@ -22,7 +22,7 @@ requires = ["hatchling==1.33.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-only-include = ["tools/audit_compliance.py"]
+only-include = ["tools/audit_compliance.py", "tools/compliance_report.py"]
 sources = ["tools"]
 
 [tool.ruff]
