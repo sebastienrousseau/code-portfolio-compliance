@@ -22,7 +22,7 @@ body:
     id: version
     attributes:
       label: Version
-      description: Output of `git -C ~/Code/Private/Other/code-portfolio-compliance describe --always; python3 --version`
+      description: Output of `git -C ~/Code/Private/Python/code-portfolio-compliance describe --always; python3 --version`
       render: text
     validations:
       required: true

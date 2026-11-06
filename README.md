@@ -13,7 +13,7 @@
 
 <p align="center">
   <a href="https://github.com/sebastienrousseau/code-portfolio-compliance/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/sebastienrousseau/code-portfolio-compliance/ci.yml?branch=main&style=for-the-badge&logo=github&label=Build" alt="Build" height="28" /></a>
-  <a href="https://github.com/sebastienrousseau/code-portfolio-compliance/releases"><img src="https://img.shields.io/badge/release-v0.0.3-fc8d62?style=for-the-badge&color=fc8d62&logo=github" alt="Registry" height="28" /></a>
+  <a href="https://github.com/sebastienrousseau/code-portfolio-compliance/releases"><img src="https://img.shields.io/badge/release-v0.0.4-fc8d62?style=for-the-badge&color=fc8d62&logo=github" alt="Registry" height="28" /></a>
   <a href="#documentation"><img src="https://img.shields.io/badge/docs-README-555555?style=for-the-badge&labelColor=555555&logo=markdown" alt="Docs" height="28" /></a>
   <a href="https://scorecard.dev/viewer/?uri=github.com/sebastienrousseau/code-portfolio-compliance"><img src="https://img.shields.io/ossf-scorecard/github.com/sebastienrousseau/code-portfolio-compliance?style=for-the-badge&label=OpenSSF%20Scorecard&logo=openssf" alt="OpenSSF Scorecard" height="28" /></a>
   <a href="LICENSE-MIT"><img src="https://img.shields.io/badge/license-MIT_OR_Apache--2.0-blue.svg?style=for-the-badge" alt="License: MIT OR Apache-2.0" height="28" /></a>
@@ -64,13 +64,13 @@ The tool is a single script with no dependencies beyond the Python standard
 library. Clone it into the workspace it audits:
 
 ```bash
-git clone https://github.com/sebastienrousseau/code-portfolio-compliance.git ~/Code/Private/Other/code-portfolio-compliance
+git clone https://github.com/sebastienrousseau/code-portfolio-compliance.git ~/Code/Private/Python/code-portfolio-compliance
 ```
 
 To get an `audit-compliance` command on your path instead:
 
 ```bash
-uv tool install ~/Code/Private/Other/code-portfolio-compliance
+uv tool install ~/Code/Private/Python/code-portfolio-compliance
 ```
 
 The installed command cannot find the workspace from its install location,
@@ -95,7 +95,7 @@ published to PyPI.
 ## Quick Start
 
 ```bash
-cd ~/Code/Private/Other/code-portfolio-compliance
+cd ~/Code/Private/Python/code-portfolio-compliance
 python3 tools/audit_compliance.py
 open reports/README.md
 ```
