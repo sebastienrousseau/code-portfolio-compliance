@@ -9,6 +9,26 @@ by 0.0.1 a release (see [docs/POLICIES.md](docs/POLICIES.md)).
 
 ## [Unreleased]
 
+### Changed
+
+- A GitHub profile repository (origin `<account>/<account>`, and that
+  account declared as `owner` in `.compliance.yml`) is audited as one: its
+  README is the rendered profile, so the template check is `n/a` and the
+  repository leaves the rewrite queue, where an agent following
+  `~/Code/AGENTS.md` section 8 would have rewritten the profile into a
+  project README. C1.L1 still requires the licence, C1.L2 README-enforcing
+  CI and `SECURITY.md`; C1.L3 is `n/a`. `readme_template` gains the value
+  `n/a`; no field is removed, renamed or retyped, so `schema_version`
+  stays 2. The summary counts canonical READMEs among repositories where
+  the template applies.
+- A `pyproject.toml` with `[tool.uv] package = false` has no public API:
+  the API checks are `n/a`.
+- Measured over the full workspace (433 repositories), one moved:
+  `Public/Python/sebastienrousseau` (C1.L1 and C1.L2 to pass, C1.L3 and
+  C6.L2 to `n/a`, candidate tier L0 to L2). A first version keyed on the
+  remote alone also moved `Forks/agentgateway`, an organisation repository;
+  requiring the declared owner fixed that.
+
 ## [0.0.3] - 2026-11-03
 
 ### Changed
