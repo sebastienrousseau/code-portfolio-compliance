@@ -11,6 +11,12 @@ by 0.0.1 a release (see [docs/POLICIES.md](docs/POLICIES.md)).
 
 ## [0.0.4] - 2026-11-06
 
+### Fixed
+
+- The README's install steps and the issue form name the repository's real
+  location, `~/Code/Private/Python/code-portfolio-compliance`, not
+  `Private/Other`.
+
 ### Changed
 
 - A GitHub profile repository (origin `<account>/<account>`, and that

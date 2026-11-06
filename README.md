@@ -64,13 +64,13 @@ The tool is a single script with no dependencies beyond the Python standard
 library. Clone it into the workspace it audits:
 
 ```bash
-git clone https://github.com/sebastienrousseau/code-portfolio-compliance.git ~/Code/Private/Other/code-portfolio-compliance
+git clone https://github.com/sebastienrousseau/code-portfolio-compliance.git ~/Code/Private/Python/code-portfolio-compliance
 ```
 
 To get an `audit-compliance` command on your path instead:
 
 ```bash
-uv tool install ~/Code/Private/Other/code-portfolio-compliance
+uv tool install ~/Code/Private/Python/code-portfolio-compliance
 ```
 
 The installed command cannot find the workspace from its install location,
@@ -95,7 +95,7 @@ published to PyPI.
 ## Quick Start
 
 ```bash
-cd ~/Code/Private/Other/code-portfolio-compliance
+cd ~/Code/Private/Python/code-portfolio-compliance
 python3 tools/audit_compliance.py
 open reports/README.md
 ```
