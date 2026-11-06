@@ -9,6 +9,8 @@ by 0.0.1 a release (see [docs/POLICIES.md](docs/POLICIES.md)).
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-11-06
+
 ### Changed
 
 - A GitHub profile repository (origin `<account>/<account>`, and that
@@ -88,7 +90,8 @@ First versioned release of the audit tool, previously an unversioned script.
   with `--root` given. The default root is now resolved only when needed,
   and a missing workspace is a usage error that names `--root`.
 
-[Unreleased]: https://github.com/sebastienrousseau/code-portfolio-compliance/compare/v0.0.3...HEAD
+[Unreleased]: https://github.com/sebastienrousseau/code-portfolio-compliance/compare/v0.0.4...HEAD
+[0.0.4]: https://github.com/sebastienrousseau/code-portfolio-compliance/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/sebastienrousseau/code-portfolio-compliance/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/sebastienrousseau/code-portfolio-compliance/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/sebastienrousseau/code-portfolio-compliance/releases/tag/v0.0.1
