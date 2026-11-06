@@ -144,6 +144,7 @@ class Applicability:
     code: str = ""
     api: str = ""
     powerset: str = ""
+    profile: str = ""
 
 
 # Programs are looked for anywhere in the tree (workspace members ship
@@ -197,12 +198,37 @@ def _program_reasons(program_free: bool) -> dict[str, str]:
     }
 
 
+# uv's own switch for a project that is not a package: no build, no API.
+NOT_A_PACKAGE = re.compile(r"(?ms)^\[tool\.uv\]\s*$(?:(?!^\[).)*?^package\s*=\s*false\s*$")
+
+
 def _api_reason(repo: Path, files: list[Path], manifests: dict[str, str], na_code: str) -> str:
     go_mod = manifests["go.mod"]
     public_go = bool(go_mod) and has_public_go(repo, files)
-    if public_go or manifests["Cargo.toml"] or manifests["pyproject.toml"] or manifests["package.json"]:
+    if public_go or manifests["Cargo.toml"] or manifests["package.json"]:
+        return ""
+    if manifests["pyproject.toml"]:
+        if NOT_A_PACKAGE.search(manifests["pyproject.toml"]):
+            return "not a package: pyproject.toml sets [tool.uv] package = false, so there is no public API"
         return ""
     return "no public API: only commands and internal packages" if go_mod else na_code
+
+
+# A GitHub profile repository is <account>/<account>. An organisation's main
+# repository can be named the same way (agentgateway/agentgateway) and is no
+# profile, which the remote alone cannot tell apart offline, so the owner
+# declared in .compliance.yml must be that account too.
+GITHUB_REMOTE = re.compile(r"github\.com[/:]([^/\s]+)/([^/\s]+?)(?:\.git)?/?$", re.IGNORECASE)
+DECLARED_OWNER = re.compile(r"(?m)^\s*owner\s*:\s*['\"]?([^#'\"\s]+)")
+
+
+def profile_reason(repo: Path) -> str:
+    """Why README checks do not apply: a GitHub profile repository's README.md is the rendered profile."""
+    match = GITHUB_REMOTE.search(git_output(repo, "remote", "get-url", "origin"))
+    owner = DECLARED_OWNER.search(read_text(repo / ".compliance.yml", 32_000))
+    if match and owner and match[1].lower() == match[2].lower() == owner[1].lower():
+        return "a GitHub profile repository: README.md is the rendered profile, not a project README"
+    return ""
 
 
 def _dependency_reason(manifests: dict[str, str], is_action: bool) -> str:
@@ -235,6 +261,7 @@ def applicability(repo: Path) -> Applicability:
         locked=_dependency_reason(manifests, is_action),
         code=na_code,
         api=_api_reason(repo, files, manifests, na_code),
+        profile=profile_reason(repo),
         powerset="" if manifests["Cargo.toml"] else "feature powersets are a Cargo concept; this ecosystem has no feature flags (AGENTS.md §6)",
     )
 
@@ -242,7 +269,19 @@ def applicability(repo: Path) -> Applicability:
 # --- one function per category; each returns its L1, L2 and L3 checks -------
 
 
+def _profile_identity(ev: Evidence, na: Applicability) -> dict[str, Check]:
+    """C1 for a GitHub profile: the licence and the security policy still apply; project README sections do not."""
+    license_present = ev.exists("LICENSE", "LICENSE.md", "LICENSE.txt", "LICENSE-APACHE", "LICENSE-MIT", "COPYING")
+    return {
+        "C1.L1": Check(bool(ev.readme and license_present), "README + license (the README is the profile)"),
+        "C1.L2": Check(bool("readme" in ev.workflows and ev.is_file("SECURITY.md")), "README CI + SECURITY.md"),
+        "C1.L3": Check(False, "install-snippet CI + toolchain policy matrix", na.profile),
+    }
+
+
 def identity_checks(ev: Evidence, na: Applicability) -> dict[str, Check]:
+    if na.profile:
+        return _profile_identity(ev, na)
     readme = ev.readme
     license_present = ev.exists("LICENSE", "LICENSE.md", "LICENSE.txt", "LICENSE-APACHE", "LICENSE-MIT", "COPYING")
     sections = "quick start" in readme.lower() and "development" in readme.lower()

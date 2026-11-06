@@ -185,9 +185,19 @@ See [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) for methodology and full results.
 - **README template check.** The primary README must have the template's 17
   headings in order, no unresolved `{{TOKENS}}` outside code, and the
   centred header and badge structure.
+- **A GitHub profile is not a project.** A repository whose origin is
+  `<account>/<account>` and whose `.compliance.yml` declares that account as
+  `owner` is a GitHub profile: its README is the rendered profile. The
+  template check reports `n/a`, C1.L1 asks only for the README and a
+  licence, C1.L2 for README-enforcing CI and `SECURITY.md`, and C1.L3 is
+  `n/a`. Without the declared owner, an organisation's main repository
+  named like the organisation would be mistaken for one.
+- **No package, no API.** A `pyproject.toml` that sets
+  `[tool.uv] package = false` builds nothing importable, so the API
+  documentation and breakage checks are `n/a`.
 - **Safe rewrite queue.** A repository is queued for a README rewrite only
   when its working tree is clean and it is not embedded in another
-  repository, a fork or vendored code.
+  repository, a fork or vendored code. A profile is never queued.
 
 ---
 

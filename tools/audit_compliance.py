@@ -249,7 +249,8 @@ def audit_repository(repo: Path, root: Path, repo_set: set[Path]) -> dict[str, o
     relative = repo.relative_to(root).as_posix()
     checks = checks_for(repo, corpus(repo))
     target, criticality, owner = parse_declaration(repo, relative)
-    template_ok, template_issues = readme_template_status(repo)
+    profile = _checks.profile_reason(repo)
+    template_ok, template_issues = (False, [profile]) if profile else readme_template_status(repo)
     safety = rewrite_safety(repo, root, repo_set)
     return {
         "path": relative,
@@ -259,7 +260,7 @@ def audit_repository(repo: Path, root: Path, repo_set: set[Path]) -> dict[str, o
         "owner": owner,
         "candidate_tier": candidate_tier(checks),
         **score(checks),
-        "readme_template": "pass" if template_ok else "fail",
+        "readme_template": "n/a" if profile else ("pass" if template_ok else "fail"),
         "readme_issues": template_issues,
         **safety,
         "missing_target_signals": missing_signals(checks, target),

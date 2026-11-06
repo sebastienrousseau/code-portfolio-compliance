@@ -93,6 +93,7 @@ def script_display_name(root: Path) -> str:
 
 def summary_lines(results: list[dict[str, object]], queue: list[str]) -> list[str]:
     template_passes = sum(result["readme_template"] == "pass" for result in results)
+    template_applies = sum(result["readme_template"] != "n/a" for result in results)
     dirty = sum(bool(result["dirty"]) for result in results)
     excluded = sum(bool(result["embedded"] or result["fork_or_vendor"]) for result in results)
     target_counts = Counter(str(result["target_tier"]) for result in results)
@@ -100,7 +101,7 @@ def summary_lines(results: list[dict[str, object]], queue: list[str]) -> list[st
         "## Summary",
         "",
         f"- Repositories: **{len(results)}**",
-        f"- Canonical primary READMEs: **{template_passes}/{len(results)}**",
+        f"- Canonical primary READMEs: **{template_passes}/{template_applies}**",
         f"- Safe README rewrite queue: **{len(queue)}**",
         f"- Dirty repositories: **{dirty}**",
         f"- Embedded/fork/vendor repositories excluded from automatic rewrites: **{excluded}**",
