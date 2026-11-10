@@ -16,7 +16,7 @@ dependencies = []
 audit-compliance = "audit_compliance:main"
 
 [dependency-groups]
-dev = ["pytest==9.2.0", "ruff==0.17.3", "radon==6.0.1", "complexipy==8.3.0"]
+dev = ["pytest==9.2.0", "ruff==0.17.4", "radon==6.0.1", "complexipy==8.3.0"]
 
 [build-system]
 requires = ["hatchling==1.33.0"]
