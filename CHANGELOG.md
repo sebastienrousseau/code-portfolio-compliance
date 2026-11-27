@@ -9,6 +9,35 @@ by 0.0.1 a release (see [docs/POLICIES.md](docs/POLICIES.md)).
 
 ## [Unreleased]
 
+## [0.0.5] - 2026-11-27
+
+### Changed
+
+- C3.L2 completions and C3.L3 manpages are `n/a` when every shipped
+  program is a Python console script (or a Dockerfile running one) whose
+  package, resolved in the repository, imports no argument parser
+  (argparse, click, typer, docopt and others) and never mentions `argv`:
+  a stdio server has no options to complete or generate a manpage from.
+  Any other program, an entry point that does not resolve, or a script
+  entry that is not a plain `"module:function"` string keeps the checks.
+- A `package.json` with `"private": true` and no `bin`, `main`, `exports`,
+  `module`, `browser`, `types`, `typings` or `workspaces` key only pins
+  dev tooling: the API checks are `n/a`, and the completion, manpage and
+  container reasons say so instead of "library or action".
+- Measured over the full workspace (369 repositories), C3.L2 moved from
+  fail to `n/a` in `Public/Python/bankstatementparser-lsp` (candidate
+  tier L1 to L2), `acmt001-mcp`, `camt053-mcp` and `pain001-mcp` (tiers
+  unchanged); C6.L2 (and C6.L3 for the first) moved from fail to `n/a`
+  in `Public/Web/bankstatementparser.github.io` and
+  `Public/Web/pain001.github.io` (both L1 to L2). Four more repositories
+  changed only a reason string. `bankstatementparser-mcp`, which parses
+  arguments with argparse, is unchanged. `schema_version` stays 2.
+
+### Dependencies
+
+- astral-sh/setup-uv 10.3.3 to 10.4.0 (Dependabot #9); ruff 0.17.3 to
+  0.17.5 and complexipy 8.3.0 to 9.0.0 (Dependabot #8).
+
 ## [0.0.4] - 2026-11-06
 
 ### Fixed
@@ -96,7 +125,8 @@ First versioned release of the audit tool, previously an unversioned script.
   with `--root` given. The default root is now resolved only when needed,
   and a missing workspace is a usage error that names `--root`.
 
-[Unreleased]: https://github.com/sebastienrousseau/code-portfolio-compliance/compare/v0.0.4...HEAD
+[Unreleased]: https://github.com/sebastienrousseau/code-portfolio-compliance/compare/v0.0.5...HEAD
+[0.0.5]: https://github.com/sebastienrousseau/code-portfolio-compliance/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/sebastienrousseau/code-portfolio-compliance/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/sebastienrousseau/code-portfolio-compliance/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/sebastienrousseau/code-portfolio-compliance/compare/v0.0.1...v0.0.2

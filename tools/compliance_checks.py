@@ -5,10 +5,12 @@ check does not apply, and one function per category of the matrix."""
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 from collections.abc import Iterable
 from dataclasses import dataclass
+from itertools import chain
 from pathlib import Path
 
 SKIP_DIRS = {
@@ -181,21 +183,96 @@ def source_files(repo: Path) -> list[Path]:
     return [path for path in repo.rglob("*") if path.is_file() and not SKIP_DIRS.intersection(path.parts)]
 
 
-def has_cli(repo: Path, files: list[Path]) -> bool:
-    return any(is_program(path) for path in files if not NOT_SHIPPED & set(path.relative_to(repo).parts))
+def shipped_programs(repo: Path, files: list[Path]) -> list[Path]:
+    return [path for path in files if not NOT_SHIPPED & set(path.relative_to(repo).parts) and is_program(path)]
+
+
+# An argument-less entry point (a stdio language server) has no options to
+# complete and no parser to generate a manpage from. Only a Python console
+# script resolved to a package in the repository qualifies; any other
+# program, or a script table entry this cannot read, keeps the checks.
+SCRIPTS_TABLE = re.compile(r"(?ms)^\[(?:project|tool\.poetry)\.scripts\]\s*$(.*?)(?=^\[|\Z)")
+SCRIPT_ENTRY = re.compile(r"""^[\w.-]+\s*=\s*["']([A-Za-z_]\w*)[\w.]*(?::[\w.]+)?["']\s*(?:#.*)?$""")
+ARGUMENT_PARSER = re.compile(
+    r"(?m)^\s*(?:from|import)\s+(?:argparse|optparse|getopt|click|rich_click|cloup|asyncclick|typer|docopt|fire|cyclopts|plac|jsonargparse)\b|\bargv\b"
+)
+
+
+def _script_packages(pyproject: Path) -> list[str] | None:
+    """Top-level packages of every console script, or None when an entry is not a plain "module:function" string."""
+    packages: list[str] = []
+    for table in SCRIPTS_TABLE.findall(read_text(pyproject)):
+        for line in filter(None, (line.strip() for line in table.splitlines())):
+            match = SCRIPT_ENTRY.match(line)
+            if not match and not line.startswith("#"):
+                return None
+            packages += [match[1]] if match else []
+    return packages or None
+
+
+def _package_sources(root: Path, package: str) -> list[Path] | None:
+    for base in (root, root / "src") if package else ():
+        if (base / package).is_dir():
+            return sorted(path for path in (base / package).rglob("*.py") if not SKIP_DIRS.intersection(path.parts))
+        if (base / f"{package}.py").is_file():
+            return [base / f"{package}.py"]
+    return None
+
+
+def _entry_point_sources(programs: list[Path]) -> list[Path] | None:
+    """The sources of every console script's package, or None when any script cannot be resolved to one."""
+    pyprojects = [path for path in programs if path.name == "pyproject.toml"]
+    found = [_package_sources(path.parent, package) for path in pyprojects for package in _script_packages(path) or [""]]
+    return list(chain.from_iterable(found)) if found and all(found) else None
+
+
+def argumentless_entry_points(programs: list[Path]) -> bool:
+    """True when every program is a Python console script (or a container running one) whose package parses no arguments."""
+    sources = _entry_point_sources(programs) or []
+    others = [path for path in programs if path.name != "pyproject.toml" and path.name not in ("Dockerfile", "Containerfile")]
+    if not sources or any(path not in sources for path in others):
+        return False
+    return not any(ARGUMENT_PARSER.search(read_text(path)) for path in sources)
+
+
+# A package.json that only pins dev tooling (a static site's linters) is
+# private and declares no entry point: nothing is published, so it has no
+# API and no program. Any entry or workspace key keeps the checks.
+NODE_ENTRY_KEYS = ("bin", "main", "exports", "module", "browser", "types", "typings", "workspaces")
+TOOLING_ONLY = "a private package.json with no bin, main or exports: dev tooling only, nothing published"
+
+
+def is_tooling_package(package_json: str) -> bool:
+    try:
+        manifest = json.loads(package_json) if package_json else None
+    except ValueError:
+        return False
+    return isinstance(manifest, dict) and manifest.get("private") is True and not any(key in manifest for key in NODE_ENTRY_KEYS)
 
 
 def has_public_go(repo: Path, files: list[Path]) -> bool:
     return any(not (GO_PRIVATE & set(path.relative_to(repo).parts)) and not path.name.endswith("_test.go") for path in files if path.suffix == ".go")
 
 
-def _program_reasons(program_free: bool) -> dict[str, str]:
+def _program_reasons(program_free: bool, tooling_only: bool) -> dict[str, str]:
     if not program_free:
         return {}
+    if tooling_only:
+        return {"cli": f"{TOOLING_ONLY}: no command line to complete or document as a manpage", "package": f"{TOOLING_ONLY}: no program to package"}
     return {
         "cli": "no command-line entry point (library or action): nothing to complete or document as a manpage",
         "package": "ships no program a distribution or a container would package (library or action)",
     }
+
+
+def _cli_reasons(repo: Path, files: list[Path], has_manifest: bool, is_action: bool, tooling_only: bool) -> dict[str, str]:
+    programs = shipped_programs(repo, files)
+    # Conservative: a repository is program-free only when a manifest says it
+    # is a library, or it is an action. Anything unrecognised stays applicable.
+    reasons = _program_reasons(not programs and (has_manifest or is_action), tooling_only)
+    if programs and argumentless_entry_points(programs):
+        reasons["cli"] = "no entry point parses arguments (no argument parser in its package): no options to complete or generate a manpage from"
+    return reasons
 
 
 # uv's own switch for a project that is not a package: no build, no API.
@@ -205,12 +282,15 @@ NOT_A_PACKAGE = re.compile(r"(?ms)^\[tool\.uv\]\s*$(?:(?!^\[).)*?^package\s*=\s*
 def _api_reason(repo: Path, files: list[Path], manifests: dict[str, str], na_code: str) -> str:
     go_mod = manifests["go.mod"]
     public_go = bool(go_mod) and has_public_go(repo, files)
-    if public_go or manifests["Cargo.toml"] or manifests["package.json"]:
+    node_api = bool(manifests["package.json"]) and not is_tooling_package(manifests["package.json"])
+    if public_go or manifests["Cargo.toml"] or node_api:
         return ""
     if manifests["pyproject.toml"]:
         if NOT_A_PACKAGE.search(manifests["pyproject.toml"]):
             return "not a package: pyproject.toml sets [tool.uv] package = false, so there is no public API"
         return ""
+    if manifests["package.json"]:
+        return f"{TOOLING_ONLY}, so there is no public API"
     return "no public API: only commands and internal packages" if go_mod else na_code
 
 
@@ -252,12 +332,10 @@ def applicability(repo: Path) -> Applicability:
     has_manifest = any(manifests.values())
     is_action = exists_any(repo, ["action.yml", "action.yaml"])
     files = source_files(repo)
-    # Conservative: a repository is program-free only when a manifest says it
-    # is a library, or it is an action. Anything unrecognised stays applicable.
-    program_free = not has_cli(repo, files) and (has_manifest or is_action)
+    tooling_only = is_tooling_package(manifests["package.json"]) and not any(manifests[name] for name in ("go.mod", "Cargo.toml", "pyproject.toml"))
     na_code = _code_reason(has_manifest, is_action)
     return Applicability(
-        **_program_reasons(program_free),
+        **_cli_reasons(repo, files, has_manifest, is_action, tooling_only),
         locked=_dependency_reason(manifests, is_action),
         code=na_code,
         api=_api_reason(repo, files, manifests, na_code),

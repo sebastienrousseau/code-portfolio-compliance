@@ -3,7 +3,7 @@
 
 [project]
 name = "code-portfolio-compliance"
-version = "0.0.4"
+version = "0.0.5"
 description = "Static audit of workspace repositories against the portfolio compliance matrix"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
@@ -16,7 +16,7 @@ dependencies = []
 audit-compliance = "audit_compliance:main"
 
 [dependency-groups]
-dev = ["pytest==9.2.0", "ruff==0.17.3", "radon==6.0.1", "complexipy==8.3.0"]
+dev = ["pytest==9.2.0", "ruff==0.17.5", "radon==6.0.1", "complexipy==9.0.0"]
 
 [build-system]
 requires = ["hatchling==1.33.0"]
