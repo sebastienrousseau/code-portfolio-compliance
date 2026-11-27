@@ -13,7 +13,7 @@
 
 <p align="center">
   <a href="https://github.com/sebastienrousseau/code-portfolio-compliance/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/sebastienrousseau/code-portfolio-compliance/ci.yml?branch=main&style=for-the-badge&logo=github&label=Build" alt="Build" height="28" /></a>
-  <a href="https://github.com/sebastienrousseau/code-portfolio-compliance/releases"><img src="https://img.shields.io/badge/release-v0.0.4-fc8d62?style=for-the-badge&color=fc8d62&logo=github" alt="Registry" height="28" /></a>
+  <a href="https://github.com/sebastienrousseau/code-portfolio-compliance/releases"><img src="https://img.shields.io/badge/release-v0.0.5-fc8d62?style=for-the-badge&color=fc8d62&logo=github" alt="Registry" height="28" /></a>
   <a href="#documentation"><img src="https://img.shields.io/badge/docs-README-555555?style=for-the-badge&labelColor=555555&logo=markdown" alt="Docs" height="28" /></a>
   <a href="https://scorecard.dev/viewer/?uri=github.com/sebastienrousseau/code-portfolio-compliance"><img src="https://img.shields.io/ossf-scorecard/github.com/sebastienrousseau/code-portfolio-compliance?style=for-the-badge&label=OpenSSF%20Scorecard&logo=openssf" alt="OpenSSF Scorecard" height="28" /></a>
   <a href="LICENSE-MIT"><img src="https://img.shields.io/badge/license-MIT_OR_Apache--2.0-blue.svg?style=for-the-badge" alt="License: MIT OR Apache-2.0" height="28" /></a>
@@ -194,7 +194,17 @@ See [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) for methodology and full results.
   named like the organisation would be mistaken for one.
 - **No package, no API.** A `pyproject.toml` that sets
   `[tool.uv] package = false` builds nothing importable, so the API
-  documentation and breakage checks are `n/a`.
+  documentation and breakage checks are `n/a`. Nor does a `package.json`
+  marked `"private": true` with no `bin`, `main`, `exports`, `module`,
+  `browser`, `types` or `workspaces` key: it only pins dev tooling (a
+  static site's linters), so its API, completion, manpage and container
+  checks are `n/a`.
+- **No arguments, nothing to complete.** When every program is a Python
+  console script (or a Dockerfile running one) whose package imports no
+  argument parser and never reads `argv`, such as a stdio language
+  server, completions and manpages are `n/a`. Any other program, or an
+  entry point that does not resolve to a package in the repository,
+  keeps them.
 - **Safe rewrite queue.** A repository is queued for a README rewrite only
   when its working tree is clean and it is not embedded in another
   repository, a fork or vendored code. A profile is never queued.
